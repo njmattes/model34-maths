@@ -420,7 +420,7 @@ class Neck(object):
                             for section in self.sections], dtype='float')
         xs = np.linspace(0, 1, 10, dtype='float')
         fit = np.polynomial.polynomial.Polynomial.fit(xs, moments, 2)
-        return fit
+        return list(fit)
 
     def curvature(self, _x):
         """Find deflection of neck at position _x.
