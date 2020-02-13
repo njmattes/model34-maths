@@ -327,16 +327,26 @@ class NeckSection(object):
              (self.inner.b**2 * self.outer.b**2 * self.outer.k**2) +
              (self.inner.b**2 * self.outer.b**2 * self.outer.a**2) +
              (-self.inner.b**2 * self.outer.a**2 * _x**2) +
-             (-4 * self.y_bar * self.inner.b**2 * self.outer.b**2 * self.inner.k) +
-             (-4 * self.y_bar * self.inner.b**2 * self.outer.b**2 * self.outer.k) +
-             (2 * self.inner.b**2 * self.outer.b**2 * self.inner.k * self.outer.k) +
-             (4 * self.y_bar * self.inner.a * self.inner.b * self.outer.b**2 * sqrt(self.inner.b**2 - _x**2)) +
-             (4 * self.y_bar * self.inner.b**2 * self.outer.b * self.outer.a * sqrt(self.outer.b**2 - _x**2)) +
-             (-2 * self.inner.a * self.inner.b * self.outer.b**2 * self.inner.k * sqrt(self.inner.b**2 - _x**2)) +
-             (-2 * self.inner.a * self.inner.b * self.outer.b**2 * self.outer.k * sqrt(self.inner.b**2 - _x**2)) +
-             (-2 * self.inner.b**2 * self.outer.b * self.inner.k * self.outer.a * sqrt(self.outer.b**2 - _x**2)) +
-             (-2 * self.inner.b**2 * self.outer.b * self.outer.k * self.outer.a * sqrt(self.outer.b**2 - _x**2)) +
-             (2 * self.inner.a * self.inner.b * self.outer.b * self.outer.a * sqrt(self.inner.b**2 - _x**2) * sqrt(self.outer.b**2 - _x**2))
+             (-4 * self.y_bar * self.inner.b**2 * self.outer.b**2 *
+              self.inner.k) +
+             (-4 * self.y_bar * self.inner.b**2 * self.outer.b**2 *
+              self.outer.k) +
+             (2 * self.inner.b**2 * self.outer.b**2 * self.inner.k *
+              self.outer.k) +
+             (4 * self.y_bar * self.inner.a * self.inner.b * self.outer.b**2 *
+              sqrt(self.inner.b**2 - _x**2)) +
+             (4 * self.y_bar * self.inner.b**2 * self.outer.b * self.outer.a *
+              sqrt(self.outer.b**2 - _x**2)) +
+             (-2 * self.inner.a * self.inner.b * self.outer.b**2 *
+              self.inner.k * sqrt(self.inner.b**2 - _x**2)) +
+             (-2 * self.inner.a * self.inner.b * self.outer.b**2 *
+              self.outer.k * sqrt(self.inner.b**2 - _x**2)) +
+             (-2 * self.inner.b**2 * self.outer.b * self.inner.k *
+              self.outer.a * sqrt(self.outer.b**2 - _x**2)) +
+             (-2 * self.inner.b**2 * self.outer.b * self.outer.k *
+              self.outer.a * sqrt(self.outer.b**2 - _x**2)) +
+             (2 * self.inner.a * self.inner.b * self.outer.b * self.outer.a *
+              sqrt(self.inner.b**2 - _x**2) * sqrt(self.outer.b**2 - _x**2))
              )/(4 * self.inner.b**2 * self.outer.b**2)
 
     def second_moment_area2(self, _x):
