@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+NUT_WIDTH = .8125
+BODY_WIDTH = 1.125
+# FACET_WIDTH = .62
+NUT_DEPTH = .5
+BODY_DEPTH = .75 + .063
+FRETBOARD_THICKNESS = .125
+RAIL_WIDTH = .125
+NECK_THICKNESS = .063
+SCALE_LENGTH = 34

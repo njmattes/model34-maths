@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from math import sqrt, atan
+from model34_maths.neck_ellipse import NeckEllipse
+from model34_maths.config import BODY_DEPTH, BODY_WIDTH
+from model34_maths.config import NUT_DEPTH, NUT_WIDTH
+from model34_maths.config import RAIL_WIDTH, SCALE_LENGTH
+from model34_maths.config import NECK_THICKNESS, FRETBOARD_THICKNESS
 
 
 class NeckSection(object):
