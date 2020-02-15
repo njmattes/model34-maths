@@ -15,16 +15,16 @@ class Neck(object):
         body = NeckSection(neck_position=SCALE_LENGTH/2)
 
         # Values from first prototype
-        body.inner.b = 1.95
-        body.outer.b = 2.8
-        nut.inner.b = .826
-        nut.outer.b = 1.66
+        body.inner.a = 1.95
+        body.outer.a = 2.8
+        nut.inner.a = .826
+        nut.outer.a = 1.66
         # End values from first prototype
 
         self.sections = [nut] + [
             NeckSection(neck_position=_x/10*SCALE_LENGTH/2,
-                        min_inner_b=nut.inner.b, max_inner_b=body.inner.b,
-                        min_outer_b=nut.outer.b, max_outer_b=body.outer.b)
+                        min_inner_a=nut.inner.a, max_inner_a=body.inner.a,
+                        min_outer_a=nut.outer.a, max_outer_a=body.outer.a)
             for _x in np.arange(1, n-1)
         ] + [body]
 
@@ -76,7 +76,7 @@ class Neck(object):
             (2 * (2 * a * _x + b) * atan((2 * a * _x + b) /
                                          sqrt(4 * a * c - b**2)) -
              sqrt(4 * a * c - b**2) * log(_x * (a * _x + b) + c)) /
-            2 * a * sqrt(4 * a * c - b**2)
+            (2 * a * sqrt(4 * a * c - b**2))
         )
 
     def curvature2(self, _x):
@@ -101,8 +101,13 @@ if __name__ == '__main__':
     neck = Neck(n=10)
     print('inner widths:', [s.inner.width for s in neck.sections])
     print('outer widths:', [s.outer.width for s in neck.sections])
-    print('inner bs:', neck.sections[0].inner.b, neck.sections[-1].inner.b, )
-    print('outer bs:', neck.sections[0].outer.b, neck.sections[-1].outer.b, )
+    print('inner as:', [s.inner.a for s in neck.sections])
+    print('inner bs:', [s.inner.b for s in neck.sections])
+    print('outer As:', [s.outer.a for s in neck.sections])
+    print('outer Bs:', [s.outer.b for s in neck.sections])
+    print('inner ks:', [s.inner.k for s in neck.sections])
+    print('outer Ks:', [s.outer.k for s in neck.sections])
+    print('y-bars:', [s.y_bar for s in neck.sections], )
     print('I_xx:', [
         '{0:.4f}'.format(_.second_moment_area(_.inner.width)) for _ in neck.sections
     ])
