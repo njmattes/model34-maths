@@ -20,8 +20,6 @@ class NeckEllipse(object):
         :type depth: float
         :param y_int: y-intercept where width crosses x-axis
         :type y_int: float
-        #TODO: Is the minor axis always horizontal?
-        #TODO: Look at nut section in CAD files.
         :param a: length of minor (horizontal) axis if known
         :type a: float
         """
@@ -32,6 +30,7 @@ class NeckEllipse(object):
         self._a = a
         self._k = None
         self._y = None
+        self._n = None
 
     @property
     def ellipse(self):
@@ -84,6 +83,16 @@ class NeckEllipse(object):
             self._k = self.b - self.depth
         return self._k
 
+    @property
+    def n(self):
+        if self._n is None:
+            self._n = self.get_random_n()
+        return self._n
+
+    @n.setter
+    def n(self, value):
+        self._n = value
+
     @staticmethod
     def get_random_in_range(minimum, maximum):
         """Generate random number between minimum and maximum values. This
@@ -104,25 +113,8 @@ class NeckEllipse(object):
         :return:
         :rtype:
         """
-        return self.k - self.b * sqrt(self.a ** 2 - x ** 2) / self.a
-
-    def get_b_from_a(self, _a, _x, _t):
-        """From a known horizontal axis (a), and point in space (x, t),
-        find the vertical axis (b).
-
-        :param _a: Horizontal axis
-        :type _a: float
-        :param _x: x-coordinate
-        :type _x: float
-        :param _t: Negative y-offset of major axis
-        :type _t: float
-        :return: Major vertical axis
-        :rtype: float
-        """
-        a = sp.symbols('a')
-        return max(sp.solve(
-            _x ** 2 / _a ** 2 + (self.y_int - (a - _t)) ** 2 / a ** 2 - 1, a
-        ))
+        return self.k - self.b * sqrt(
+            self.a ** self.n - x ** self.n) / self.a**(self.n / 2)
 
     def get_random_a(self):
         """Generate random horizontal radius.
@@ -133,12 +125,21 @@ class NeckEllipse(object):
         """
         return self.get_random_in_range(self.width, self.width * 2)
 
+    def get_random_n(self):
+        """Generate random exponent.
+
+        :return: Random number greater that 2 and less than 4,
+        and less than twice that.
+        :rtype: float
+        """
+        return self.get_random_in_range(2, 4)
+
     def get_b(self):
         """Get value for major axis a at nut, given a value for minor axis b.
 
-        :param _b: Minor (horizontal) axis
-        :type _b: float
         :return:
         :rtype:
         """
-        return self.get_b_from_a(self.a, self.width, self.depth)
+        return (self.a * sqrt(1 / ((self.a - self.width) *
+                                   (self.a + self.width))) *
+                (self.a - self.depth - self.y_int))
