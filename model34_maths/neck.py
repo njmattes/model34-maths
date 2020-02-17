@@ -35,6 +35,36 @@ class Neck(object):
         self.string_to_fretboard_distance = .125
         self._mean_load_centroid_distance = None
         self.n = n
+        self._p1 = None
+        self._p2 = None
+        self._p3 = None
+        self._deflection = None
+
+    @property
+    def p1(self):
+        if self._p1 is None:
+            (self._p1, self._p2, self._p3) = self.curve_fit_area_moment()
+        return self._p1
+
+    @property
+    def p2(self):
+        if self._p2 is None:
+            (self._p1, self._p2, self._p3) = self.curve_fit_area_moment()
+        return self._p2
+
+    @property
+    def p3(self):
+        if self._p3 is None:
+            (self._p1, self._p2, self._p3) = self.curve_fit_area_moment()
+        return self._p3
+
+    @property
+    def deflection(self):
+        if self._deflection is None:
+            self._deflection = [
+                neck.curvature(s.neck_position) for s in neck.sections
+            ]
+        return self._deflection
 
     @property
     def mean_load_centroid_distance(self):
@@ -55,7 +85,7 @@ class Neck(object):
         :return:
         :rtype:
         """
-        moments = np.array([section.second_moment_area(section.inner.width)
+        moments = np.array([section.second_moment_area
                             for section in self.sections], dtype='float')
         xs = np.linspace(0, 1, self.n, dtype='float') * SCALE_LENGTH / 2
         fit = np.polynomial.polynomial.Polynomial.fit(xs, moments, 2)
@@ -71,30 +101,14 @@ class Neck(object):
         """
         m = self.mean_load_centroid_distance * self.load
         e = self.elastic_modulus
-        (a, b, c) = self.curve_fit_area_moment()
-        return (m / e) * (
-            (2 * (2 * a * _x + b) * atan((2 * a * _x + b) /
-                                         sqrt(4 * a * c - b**2)) -
-             sqrt(4 * a * c - b**2) * log(_x * (a * _x + b) + c)) /
-            (2 * a * sqrt(4 * a * c - b**2))
+        return 2 * (m / e) * (
+            (2 * (2 * self.p1 * _x + self.p2) *
+             atan((2 * self.p1 * _x + self.p2) /
+                  sqrt(4 * self.p1 * self.p3 - self.p2**2)) -
+             sqrt(4 * self.p1 * self.p3 - self.p2**2) *
+             log(_x * (self.p1 * _x + self.p2) + self.p3)) /
+            (2 * self.p1 * sqrt(4 * self.p1 * self.p3 - self.p2**2))
         )
-
-    def curvature2(self, _x):
-        """Find deflection of neck at position _x.
-
-        :param _x:
-        :type _x:
-        :return:
-        :rtype:
-        """
-        m = self.mean_load_centroid_distance * self.load
-        e = self.elastic_modulus
-        (a, b, c) = self.curve_fit_area_moment()
-        return (m / e) * (
-                (2 * atan(
-                    (2 * a * _x + b) /
-                    sqrt(4 * a * c - b**2))) /
-                sqrt(4 * a * c - b**2))
 
 
 if __name__ == '__main__':
@@ -109,7 +123,7 @@ if __name__ == '__main__':
     print('outer Ks:', [s.outer.k for s in neck.sections])
     print('y-bars:', [s.y_bar for s in neck.sections], )
     print('I_xx:', [
-        '{0:.4f}'.format(_.second_moment_area(_.inner.width)) for _ in neck.sections
+        '{0:.4f}'.format(_.second_moment_area) for _ in neck.sections
     ])
     for s in neck.sections:
         print('{0:.2f}'.format(s.neck_position),
