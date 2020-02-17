@@ -6,6 +6,7 @@ from model34_maths.config import BODY_DEPTH, BODY_WIDTH
 from model34_maths.config import NUT_DEPTH, NUT_WIDTH
 from model34_maths.config import RAIL_WIDTH, SCALE_LENGTH
 from model34_maths.config import NECK_THICKNESS, FRETBOARD_THICKNESS
+from model34_maths.decorators import finite_method
 
 
 class NeckSection(object):
@@ -39,6 +40,7 @@ class NeckSection(object):
             a=None if min_outer_a is None else
             min_outer_a + (max_outer_a - min_outer_a) * neck_position)
         self._y_bar = None
+        self._second_moment_area = None
 
     @property
     def y_bar(self):
@@ -49,11 +51,18 @@ class NeckSection(object):
         """
         if self._y_bar is None:
             self._y_bar = (
-                    self.integral_yda_between_ellipses(self.inner.width) /
-                    (2*self.integral_da_between_ellipses(self.inner.width)))
+                    self.get_integral_yda_between_ellipses(self.inner.width) /
+                    (2 * self.get_integral_da_between_ellipses(self.inner.width)))
         return self._y_bar
 
-    def integral_da_between_ellipses(self, x):
+    @property
+    def second_moment_area(self):
+        if self._second_moment_area is None:
+            self._second_moment_area = self.get_second_moment_area(
+                self.inner.width)
+        return self._second_moment_area
+
+    def get_integral_da_between_ellipses(self, x):
         """Integral of dA in the denominator of x-bar and y-bar.
 
         y = k - a * sqrt(b**2 - x**2) / b
@@ -84,7 +93,7 @@ class NeckSection(object):
         )
         return eq
 
-    def integral_yda_between_ellipses(self, x):
+    def get_integral_yda_between_ellipses(self, x):
         """Integral of y * dA in the numerator of y-bar.
 
         :param _x:
@@ -114,40 +123,14 @@ class NeckSection(object):
                 A**2 * b**2 * x**3)
         return eq
 
-    def second_moment_area(self, _x):
-        """Integral of (y - y_bar)**2.
-
-        :param _x:
-        :type _x:
-        :return:
-        :rtype:
-        """
-        return \
-            ((4 * self.y_bar ** 2 * self.inner.a ** 2 * self.outer.a ** 2) +
-             (self.inner.b ** 2 * self.inner.a ** 2 * self.outer.a ** 2) +
-             (-self.inner.b ** 2 * self.outer.a ** 2 * _x ** 2) +
-             (self.inner.a ** 2 * self.outer.a ** 2 * self.inner.k ** 2) +
-             (self.inner.a ** 2 * self.outer.a ** 2 * self.outer.k ** 2) +
-             (self.inner.a ** 2 * self.outer.a ** 2 * self.outer.b ** 2) +
-             (-self.inner.a ** 2 * self.outer.b ** 2 * _x ** 2) +
-             (-4 * self.y_bar * self.inner.a ** 2 * self.outer.a ** 2 *
-              self.inner.k) +
-             (-4 * self.y_bar * self.inner.a ** 2 * self.outer.a ** 2 *
-              self.outer.k) +
-             (2 * self.inner.a ** 2 * self.outer.a ** 2 * self.inner.k *
-              self.outer.k) +
-             (4 * self.y_bar * self.inner.b * self.inner.a * self.outer.a ** 2 *
-              sqrt(self.inner.a ** 2 - _x ** 2)) +
-             (4 * self.y_bar * self.inner.a ** 2 * self.outer.a * self.outer.b *
-              sqrt(self.outer.a ** 2 - _x ** 2)) +
-             (-2 * self.inner.b * self.inner.a * self.outer.a ** 2 *
-              self.inner.k * sqrt(self.inner.a ** 2 - _x ** 2)) +
-             (-2 * self.inner.b * self.inner.a * self.outer.a ** 2 *
-              self.outer.k * sqrt(self.inner.a ** 2 - _x ** 2)) +
-             (-2 * self.inner.a ** 2 * self.outer.a * self.inner.k *
-              self.outer.b * sqrt(self.outer.a ** 2 - _x ** 2)) +
-             (-2 * self.inner.a ** 2 * self.outer.a * self.outer.k *
-              self.outer.b * sqrt(self.outer.a ** 2 - _x ** 2)) +
-             (2 * self.inner.b * self.inner.a * self.outer.a * self.outer.b *
-              sqrt(self.inner.a ** 2 - _x ** 2) * sqrt(self.outer.a ** 2 - _x ** 2))
-             )/(4 * self.inner.a ** 2 * self.outer.a ** 2)
+    @finite_method(10000, 0)
+    def get_second_moment_area(self, x):
+        a = self.inner.a
+        A = self.outer.a
+        b = self.inner.b
+        B = self.outer.b
+        k = self.inner.k
+        K = self.outer.k
+        Y = self.y_bar
+        return (((k - b * sqrt(a ** 2 - x ** 2) / a) +
+                 (K - B * sqrt(A ** 2 - x ** 2) / A)) / 2 - Y) ** 2
