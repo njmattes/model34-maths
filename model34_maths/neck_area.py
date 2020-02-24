@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from math import sqrt
-from model34_maths.decorators import finite_method
 from scipy.integrate import quad
 
 
