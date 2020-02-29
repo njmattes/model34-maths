@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from scipy.integrate import quad
+from scipy.integrate import quad, dblquad
 
 
 N = 3
@@ -34,11 +34,14 @@ class NeckArea(object):
     @property
     def second_moment(self):
         if self._second_moment is None:
-            def f(x):
-                return (((self.y_max(x) - self.y_min(x)) ** 3) / 12 +
-                        (self.y_max(x) - self.y_min(x)) *
-                        ((self.y_max(x) + self.y_min(x)) / 2) ** 2)
-            self._second_moment = quad(f, self.x_min, self.x_max)[0]
+            yb = self.y_bar
+
+            def f(y, x):
+                return (y - yb) ** 2
+
+            self._second_moment = dblquad(f, self.x_min, self.x_max,
+                                          lambda x: self.y_min(x),
+                                          lambda x: self.y_max(x))[0]
         return self._second_moment
 
     @property
