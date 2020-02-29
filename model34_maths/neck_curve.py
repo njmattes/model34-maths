@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from math import sqrt
+from math import sqrt, fabs
 
 
 class NeckCurve(object):
@@ -23,13 +23,34 @@ class NeckCurve(object):
         :return:
         :rtype:
         """
+        if self.b == 0:
+            return self.k
         try:
-            return self.k - self.b / self.a ** (self.n / 2) * sqrt(
-                self.a ** self.n - x ** self.n
-            )
+            # print(self.a, self.b, self.k, self.n)
+            return self.k - self.b * (1 - fabs(x / self.a) ** self.n) ** (1 / self.n)
+        except ValueError:
+
+            print('domain error, √a^n-x^n:', self.a ** self.n - x ** self.n, 'k:', self.k, 'a:', self.a)
+            # print('domain error')
+            # print('a:', self.a, 'b:', self.b, 'k:', self.k, 'n:', self.n, 'x:', x)
+            return self.k
+
+    def x(self, y):
+        """
+
+        :param y:
+        :type y:
+        :return:
+        :rtype:
+        """
+        try:
+            return (
+                self.a *
+                (1 - fabs((self.k - y) / self.b) ** self.n) ** (1 / self.n))
+            # return (self.a * sqrt(self.b**2 - (self.k - y)**2) / self.b)
         except ValueError:
             print('domain error')
-            print('a:', self.a, 'b:', self.b, 'k:', self.k, 'n:', self.n, 'x:', x)
+            print('a:', self.a, 'b:', self.b, 'k:', self.k, 'n:', self.n, 'y:', y)
             return self.k - self.b / self.a ** (self.n / 2) * sqrt(
-                self.a ** self.n - x ** self.n
+                self.a ** self.n - y ** self.n
             )
