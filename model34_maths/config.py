@@ -1,13 +1,43 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import numpy as np
 
 
-NUT_WIDTH = .8125
-BODY_WIDTH = 1.125
-# FACET_WIDTH = .62
-NUT_DEPTH = .5
-BODY_DEPTH = .75 + .063
-FRETBOARD_THICKNESS = .125
-RAIL_WIDTH = .125
-NECK_THICKNESS = .063
-SCALE_LENGTH = 34
+class NeckConfig(object):
+    # n = n
+    nut_width = .8125
+    nut_depth = .5
+    nut_shell = .0625
+    octave_width = 1.125
+    octave_depth = .75 + .0625
+    octave_shell = .0625 + .0625
+    rail_width = .125
+    rail_depth = .0625
+    scale = 34
+    fretboard_thickness = .125
+
+    load = 36.5 + 42 + 51.3 + 42.8
+    elastic_modulus = 10 * 10 ** 6
+    string_to_fretboard_distance = .0625
+
+    widths = np.array([
+
+        octave_width,
+        octave_width - rail_width,
+        nut_width,
+        nut_width - rail_width,
+    ])
+
+    depths = np.array([
+
+        octave_depth,
+        octave_depth - octave_shell,
+        nut_depth,
+        nut_depth - nut_shell,
+    ])
+    n0 = 2
+    n1 = 2
+
+
+if __name__ == '__main__':
+    pass
