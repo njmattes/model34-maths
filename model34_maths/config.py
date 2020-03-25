@@ -15,13 +15,13 @@ class NeckConfig(object):
     rail_depth = .0625
     scale = 34
     fretboard_thickness = .125
+    inner_rib = .125
 
     load = 36.5 + 42 + 51.3 + 42.8
     elastic_modulus = 10 * 10 ** 6
     string_to_fretboard_distance = .125
 
     widths = np.array([
-
         octave_width,
         octave_width - rail_width,
         nut_width,
@@ -29,14 +29,14 @@ class NeckConfig(object):
     ])
 
     depths = np.array([
-
         octave_depth,
         octave_depth - octave_shell,
         nut_depth,
         nut_depth - nut_shell,
     ])
-    n0 = 2
-    n1 = 2
+
+    r_outer = 2
+    r_inner = 2
 
 
 if __name__ == '__main__':
