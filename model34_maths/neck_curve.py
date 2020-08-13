@@ -5,6 +5,22 @@ from math import sqrt, fabs
 
 class NeckCurve(object):
     def __init__(self, a, b, k, n):
+        """Hyperelliptical curve in the form
+
+
+        |  x  |^n | (y - k) |^n
+        | --- | + | ------- | = 1
+        |  a  |   |    b    |
+
+        :param a: Minor horizontal radius
+        :type a: float
+        :param b: Minor vertical radius
+        :type b: float
+        :param k: Vertical offset
+        :type k: float
+        :param n: Degree of curvature
+        :type n: float
+        """
         self.a = a
         self.b = b
         self.k = k
