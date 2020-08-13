@@ -15,8 +15,8 @@ if __name__ == '__main__':
         new_neck = Neck()
 
         original_neck.minor_bs = np.array([2, 1, 4, .625])
-        original_neck.inner_rib = .25
-
+        original_neck.inner_rib = .125
+        original_neck.rail_depth = 0
         # Calculate area / weight with solid inner rib
         original_neck.set_model(solid_rib=True)
         print('A0: {:.3f}, A1 {:.3f}, Asum: {:.2f}'.format(
@@ -32,6 +32,9 @@ if __name__ == '__main__':
         # deflection).
         original_neck.inner_rib = .125
         original_neck.set_model()
+        print('A0: {:.3f}, A1 {:.3f}, Asum: {:.2f}'.format(
+            original_neck.sections[0].area, original_neck.sections[-1].area,
+            sum([section.area for section in original_neck.sections])))
         deflection_a = original_neck.deflection[-1]
 
         # Set new neck parameters to optimal parameters
@@ -47,12 +50,18 @@ if __name__ == '__main__':
         new_neck.nut_depth = optimal.x[8]
         new_neck.octave_depth = optimal.x[9]
         new_neck.inner_rib = optimal.x[10]
-        new_neck.set_model()
 
-        deflection_b = new_neck.deflection[-1]
+        new_neck.set_model(solid_rib=True, medial_rib=True)
         print('A0: {:.3f}, A1 {:.3f}, Asum: {:.2f}'.format(
             new_neck.sections[0].area, new_neck.sections[-1].area,
             sum([section.area for section in new_neck.sections])))
+
+        new_neck.set_model()
+        print('A0: {:.3f}, A1 {:.3f}, Asum: {:.2f}'.format(
+            new_neck.sections[0].area, new_neck.sections[-1].area,
+            sum([section.area for section in new_neck.sections])))
+
+        deflection_b = new_neck.deflection[-1]
         print('d[nut]: {:.3f}, d[sum]: {:.3f}'.format(
             deflection_a, sum(original_neck.deflection)))
         print('d[nut]: {:.3f}, d[sum]: {:.3f}'.format(
@@ -69,8 +78,14 @@ if __name__ == '__main__':
               'depth: {}\n'
               'rib: {}'.format(
                     optimal.x[0:4], optimal.x[4:6], optimal.x[6], optimal.x[7],
-                    optimal.x[8:10], optimal.x[10]
-        ))
+                    optimal.x[8:10], optimal.x[10]))
+
+        print(new_neck.minor_as)
+        print(new_neck.minor_bs)
+        print(new_neck.depths)
+        print(new_neck.widths)
+        print(original_neck.deflection)
+        print(new_neck.deflection)
 
     else:
 
