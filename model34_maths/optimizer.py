@@ -16,6 +16,7 @@ class OptimalNeck(object):
                   np.array([
                       2, .5, 2, .5, 2, 2, .125, .03125, .5, .75 + .0625, .125])
         self.target_area = 5.0634014771373765  # Weight with full inner rib
+        self.target_area = 3.93  # Weight with open inner rib
         self.target_deflection = .191
 
     def __call__(self, *args, **kwargs):
@@ -29,27 +30,25 @@ class OptimalNeck(object):
             [self.neck.widths[2], self.neck.widths[2] * 6],
             [self.neck.widths[3], self.neck.widths[3] * 2],
             [2, 3],  # Outer curvature
-            [2, 3],  # Inner curvature
+            [2, 4],  # Inner curvature
             [.125, .5],  # Rail
-            [.03125, .125],  # Shell thickness
+            [.0, .125],  # Shell thickness
             [.5, .625],  # Depth at nut
-            [.75 + .0625, .75 + 2 * .0625],  # Depth at body
-            [.125, .5],  # Inner rib
+            [.75 + .0625, .75 + 4 * .0625],  # Depth at body
+            [.0625, .125],  # Inner rib
             # [.0625, .1875],
         ])
 
     @property
     def constraints(self):
-        return (
-            dict(type='ineq',
-                 fun=self.get_area),
-            # dict(type='ineq',
+        return dict(type='ineq', fun=self.get_area)
             #      fun=self.get_deflection),
-        )
 
     def get_area(self, x):
         self.set_neck(x)
-        return self.target_area * .95 - sum([s.area for s in self.neck.sections])
+        scalar = .95
+        diff = self.target_area * scalar - sum([s.area for s in self.neck.sections])
+        return diff
 
     def get_deflection(self, x):
         self.set_neck(x)
@@ -70,13 +69,16 @@ class OptimalNeck(object):
         self.neck.octave_depth = x[9]
         self.neck.inner_rib = x[10]
         # self.neck.inner_rib = x[8]
-        self.neck.set_model()
+        self.neck.set_model(medial_rib=True)
 
     def objective(self, x):
         self.set_neck(x)
         return (
             # (sum([s.area for s in self.neck.sections]) / self.target_area) *
-            100 * (self.neck.deflection[-1]) ** 2
+            # 100 * (self.neck.deflection[-1]) ** 2
+            np.sum(
+                np.arange(len(self.neck.deflection)) *
+                np.array(self.neck.deflection) ** 2)
         )
 
     def minimize(self):
