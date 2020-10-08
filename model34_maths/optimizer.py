@@ -8,10 +8,10 @@ from model34_maths.neck import Neck
 
 X0 = np.array([
     # x[2] <= rand * x[0] + x[1] <= x[3]
+    [.5, 1.5, 0, 20, ],  # b octave inner
+    [2, 1.5, 0, 20, ],  # b octave outer
     [.5, 1.5, 0, 20, ],       # b nut inner
     [2, 1.5, 0, 20, ],        # b nut outer
-    [.5, 1.5, 0, 20, ],           # b octave inner
-    [2, 1.5, 0, 20, ],            # b octave outer
     [2, 2, 2, 3.5, ],               # r nut inner
     [1, 2, 2, 3.5, ],               # r nut outer
     [2, 2, 2, 3.2, ],               # r octave inner
@@ -56,14 +56,14 @@ class OptimalNeck(object):
             dict(type='ineq', fun=self.get_area),
             # inner faces inside outer faces
             dict(type='ineq', fun=self.reasonable_curves),
-            # nut inner b > nut depth - shell
-            dict(type='ineq', fun=lambda x: x[1] - (x[10] - x[9])),
-            # nut outer b > nut depth
-            dict(type='ineq', fun=lambda x: x[1] - x[10]),
             # octave inner b > .75 thickness of neck
-            dict(type='ineq', fun=lambda x: x[2] - .75),
+            dict(type='ineq', fun=lambda x: x[0] - .75),
             # octave outer b > octave depth
-            dict(type='ineq', fun=lambda x: x[3] - x[11]),
+            dict(type='ineq', fun=lambda x: x[1] - x[11]),
+            # nut inner b > nut depth - shell
+            dict(type='ineq', fun=lambda x: x[2] - (x[10] - x[9])),
+            # nut outer b > nut depth
+            dict(type='ineq', fun=lambda x: x[3] - x[10]),
         ]
 
     def get_area(self, x):

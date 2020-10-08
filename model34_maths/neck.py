@@ -300,12 +300,10 @@ class Neck(NeckConfig):
     def set_model(self, solid_rib=False,
                   medial_rib=False, longitudinal_ribs=False):
         self.depths = np.array([
-            [self.nut_depth - self.nut_shell,
-             self.nut_depth, ],
             [self.octave_depth - self.octave_shell,
              self.octave_depth, ],
-            # [self.octave_depth - self.octave_shell,
-            #  self.octave_depth, ],
+            [self.nut_depth - self.nut_shell,
+             self.nut_depth, ],
         ])
 
         y_offsets = np.zeros(4).reshape((2, 2))

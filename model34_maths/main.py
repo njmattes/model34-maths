@@ -8,7 +8,7 @@ from model34_maths.neck import Neck
 def original_neck():
     original_neck = Neck()
 
-    original_neck.endpoint_bs = np.array([[.625, 4], [1, 2]])
+    original_neck.endpoint_bs = np.array([[1, 2], [.625, 4], ])
     original_neck.inner_rib = .125
     original_neck.rail_depth = 0
     # Calculate area / weight with solid inner rib

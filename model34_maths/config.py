@@ -23,23 +23,25 @@ class NeckConfig(object):
     string_to_fretboard_distance = .125
 
     widths = np.array([
+        [octave_width - rail_width,
+         octave_width, ],
         [nut_width - rail_width,
          nut_width, ],
-        [octave_width - rail_width,
-         octave_width, ]
+
     ])
 
     depths = np.array([
+        [octave_depth - octave_shell,
+         octave_depth, ],
         [nut_depth - nut_shell,
          nut_depth, ],
-        [octave_depth - octave_shell,
-         octave_depth, ]
     ])
 
     exponents = np.array([
         [2, 2, ],
         [2, 2, ]
     ])
+
 
 if __name__ == '__main__':
     pass

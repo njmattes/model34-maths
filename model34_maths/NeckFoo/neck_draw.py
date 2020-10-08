@@ -61,54 +61,24 @@ def draw_sections(neck):
 
 def draw_original():
     original_neck = Neck()
-    original_neck.endpoint_bs = np.array([[.625, 4], [1, 2]])
+    original_neck.endpoint_bs = np.array([[1, 2], [.625, 4], ])
     original_neck.inner_rib = .125
     original_neck.rail_depth = 0
     # Calculate area / weight with solid inner rib
     original_neck.set_model(solid_rib=True)
     # draw_sections(original_neck)
     draw_areas(original_neck)
-
-    from scipy.integrate import quad
-
-    def f(x):
-        # return (original_neck.get_inner_curve(0).y(x) +
-        #         original_neck.get_outer_curve(0).y(x)) / 2 * \
-        #        (original_neck.get_inner_curve(0).y(x) -
-        #         original_neck.get_outer_curve(0).y(x))
-        return (original_neck.get_inner_curve(0).y(x) -
-                original_neck.get_outer_curve(0).y(x))
-
-    # print(quad(f, 0, original_neck.octave_width - original_neck.rail_width))
-    from model34_maths.neck_area import NeckArea
-    area = NeckArea(
-        0,
-        original_neck.get_inner_rail(0),  # x1: inner rail edge
-        original_neck.get_outer_curve(-1),  # y0: outer curved face
-        original_neck.get_inner_curve(-1)
-    )
-    print(area.area)
-    print(area.x_min)
-    print(area.x_max)
-    x = np.linspace(0, original_neck.get_inner_rail(-1), 50)
-    plt.plot(x, original_neck.get_outer_curve(-1).y(x))
-    plt.plot(x, original_neck.get_inner_curve(-1).y(x))
-    plt.show()
-    plt.plot(x, area.y_max(x))
-    plt.plot(x, area.y_min(x))
-    plt.show()
-
-
-    # print(original_neck.sections[0].areas)
-
+    print(sum([s.area for s in original_neck.sections]))
+    original_neck.set_model()
+    print(original_neck.deflection)
 
 
 def draw_optimal():
     opt_neck = Neck()
-    opt_neck.endpoint_bs = np.array([0.625, 2.7197315,
-                                     1.55822206, 4.04447216]).reshape((2, 2))
-    opt_neck.exponents = np.array([[3.82064514, 3.,
-                                    3.68748353, 2.]]).reshape((2, 2))
+    opt_neck.endpoint_bs = np.array([1.55822206, 4.04447216,
+                                     0.625, 2.7197315, ]).reshape((2, 2))
+    opt_neck.exponents = np.array([[3.68748353, 2.,
+                                    3.82064514, 3., ]]).reshape((2, 2))
     opt_neck.rail_width = 0.21883729056706025
     opt_neck.nut_shell = 0.0
     opt_neck.octave_shell = 0.010039654395593034
@@ -121,6 +91,41 @@ def draw_optimal():
     draw_areas(opt_neck)
 
 
+def draw_any(x):
+    neck = Neck()
+    neck.endpoint_bs = x[0:4].reshape((2, 2))
+    neck.exponents = x[4:8].reshape((2, 2))
+    neck.rail_width = x[8]
+    neck.nut_shell = x[9]
+    neck.octave_shell = x[11] - .75 + x[9]
+    neck.nut_depth = x[10]
+    neck.octave_depth = x[11]
+    neck.inner_rib = x[12]
+    # Calculate area / weight with solid inner rib
+    neck.set_model(solid_rib=True)
+    # draw_sections(opt_neck)
+    print(sum([s.area for s in neck.sections]))
+    draw_areas(neck)
+    neck.set_model()
+    print(neck.deflection)
+
+
 if __name__ == '__main__':
-    draw_original()
+    # draw_original()
     # draw_optimal()
+    draw_any(np.array([
+        1.18552443,
+        3.08404271,
+        0.82819804,
+        0.8125,
+        3.82721312,
+        2.,
+        3.50399796,
+        2.,
+        0.13062725,
+        0.05011796,
+        0.5,
+        0.93869175,
+        0.14332651])
+    )
+    draw_original()
