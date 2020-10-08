@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from math import sqrt, fabs
+import numpy as np
 
 
 class NeckCurve(object):
@@ -44,7 +45,7 @@ class NeckCurve(object):
         try:
             # print(self.a, self.b, self.k, self.n)
             return (self.k -
-                    self.b * (1 - fabs(x / self.a) ** self.n) ** (1 / self.n))
+                    self.b * (1 - np.abs(x / self.a) ** self.n) ** (1 / self.n))
         except ValueError:
             print('domain error, √a^n-x^n:',
                   self.a ** self.n - x ** self.n, 'k:', self.k, 'a:', self.a)
