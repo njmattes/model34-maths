@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from scipy.integrate import dblquad
+from scipy.optimize import curve_fit
 from numpy.polynomial.polynomial import polyfit
 from model34_maths.neck_section import NeckSection
 from model34_maths.neck_area import NeckArea
@@ -16,14 +17,24 @@ class Neck(NeckConfig):
         """
 
         self.n = n
-        self.minor_bs = self.get_random_in_range(self.depths,
-                                                 self.depths * a_max)
-        self.minor_as = None
+        self.endpoint_bs = self.get_random_in_range(
+            self.depths, self.depths * a_max)
+        self.endpoint_as = None
+        self.endpoint_ks = None
+        self.endpoint_ts = None
+        self.bs = np.empty((2, self.n))
+        self.aa = np.empty((2, self.n))
+        self.ks = np.empty((2, self.n))
+        self.rs = np.empty((2, self.n))
+        self.ts = None
+        self.inner_rail = None
+        self.outer_rail = None
         self.sections = None
         self._p1 = None
         self._p2 = None
         self._p3 = None
         self._deflection = None
+        self.foo = True
         self.set_model()
 
     @property
@@ -61,7 +72,7 @@ class Neck(NeckConfig):
         """
         moments = np.array([section.second_moment
                             for section in self.sections], dtype='float')
-        xs = np.linspace(0, 1, self.n+1, dtype='float') * self.scale / 2
+        xs = np.linspace(0, 1, self.n, dtype='float') * self.scale / 2
         fit = polyfit(xs, moments, 2)
         return list(fit)
 
@@ -119,19 +130,11 @@ class Neck(NeckConfig):
 
     def get_inner_curve(self, i):
         return NeckCurve(
-            self.scale_value(i / self.n, *self.minor_as[1::2]),
-            self.scale_value(i / self.n, *self.minor_bs[1::2]),
-            self.scale_value(i / self.n,
-                             *self.minor_bs[1::2] - self.depths[1::2]),
-            self.r_inner)
+            self.aa[0, i], self.bs[0, i], self.ks[0, i], self.rs[0, i])
 
     def get_outer_curve(self, i):
         return NeckCurve(
-            self.scale_value(i / self.n, *self.minor_as[0::2]),
-            self.scale_value(i / self.n, *self.minor_bs[0::2]),
-            self.scale_value(i / self.n,
-                             *self.minor_bs[0::2] - self.depths[0::2]),
-            self.r_outer)
+            self.aa[1, i], self.bs[1, i], self.ks[1, i], self.rs[1, i])
 
     def get_inner_rail(self, i):
         """Calculate horizontal location of inner edge of the fretbaord rail.
@@ -141,7 +144,7 @@ class Neck(NeckConfig):
         :return: x-coordinate of inner rail edge
         :rtype: float
         """
-        return self.scale_value(i / self.n, *self.widths[1::2])
+        return self.scale_value(i / (self.n - 1), *self.widths[:, 0])
 
     def get_outer_rail(self, i):
         """Calculate horizontal location of outer edge of the fretbaord rail.
@@ -151,7 +154,7 @@ class Neck(NeckConfig):
         :return: x-coordinate of outer rail edge
         :rtype: float
         """
-        return self.scale_value(i / self.n, *self.widths[0::2])
+        return self.scale_value(i / (self.n - 1), *self.widths[:, 1])
 
     def build_areas(self, i):
         areas = list()
@@ -189,6 +192,7 @@ class Neck(NeckConfig):
                 self.get_outer_curve(i),   # y0: outer curved face
                 self.get_inner_curve(i)))  # y1: inner curved face
 
+        areas.reverse()
         return areas
 
     def build_areas_with_solid_rib(self, i):
@@ -226,45 +230,123 @@ class Neck(NeckConfig):
         areas = self.build_areas(i)
         rib_thickness = .06
         for j in range(n):
-            areas.append(NeckArea(
-                (self.get_inner_rail(i)-(.125+self.inner_rib))/n*(j+1)-rib_thickness/2,
-                (self.get_inner_rail(i)-(.125+self.inner_rib))/n*(j+1)+rib_thickness/2,
-                self.get_inner_curve(i), NeckCurve(1, 0, 0, 2),
-            ))
+            areas.append(
+                NeckArea(
+                    (self.get_inner_rail(i) - (.125 + self.inner_rib)) / n *
+                    (j + 1) - rib_thickness / 2,
+                    (self.get_inner_rail(i) - (.125 + self.inner_rib)) / n *
+                    (j + 1) + rib_thickness / 2,
+                    self.get_inner_curve(i), NeckCurve(1, 0, 0, 2), ))
         return areas
+
+    def get_poly_for_curve(self, xs, ys):
+
+        def f(x, a, b, k, n):
+            return k - b * (1 - np.abs(x / a) ** n) ** (1 / n)
+
+        p0 = np.array([
+            np.max(self.endpoint_as),
+            np.max(self.endpoint_bs),
+            np.max(self.endpoint_bs) - .5,
+            2,
+            # xs[-1], xs[-1], xs[-1], 2,
+        ])
+        # FIXME: All lower bounds must be less than all upper bounds
+        bounds = np.array([
+            # [xs[-1], xs[-1], 0, 2],
+            [np.min(self.endpoint_as), np.min(self.endpoint_bs),
+             0, 2],
+            [np.max(self.endpoint_as), np.max(self.endpoint_bs),
+             np.max(self.endpoint_bs), 4],
+        ])
+        fit = curve_fit(f, xs, ys, p0=p0, bounds=bounds)
+        return list(fit[0])
+
+    def get_coefficients(self):
+        import matplotlib.pyplot as plt
+
+        ts = (self.endpoint_ts.reshape((4, -1)) +
+              (np.pi / 2 - self.endpoint_ts).reshape((4, -1)) *
+              np.linspace(1, 0, self.n)).reshape((2, 2, -1))
+        xs = (self.endpoint_as.reshape((2, 2, -1)) *
+              np.cos(ts) ** (2 / self.exponents.reshape((2, 2, -1))))
+        ys = (-self.endpoint_bs.reshape((2, 2, -1)) * np.sin(ts) **
+              (2 / self.exponents.reshape((2, 2, -1))) +
+              self.endpoint_ks.reshape((2, 2, -1)))
+
+        # Dims: (2, self.n, 10) (Inner then outer, Nut to octave, Left to right)
+        xs = (xs[0, :].reshape((2, -1, 1)) +
+              np.diff(xs, axis=0).reshape((2, -1, 1)) *
+              np.linspace(0, 1, 10)).transpose(0, 2, 1)
+        ys = (ys[0, :].reshape((2, -1, 1)) +
+              np.diff(ys, axis=0).reshape((2, -1, 1)) *
+              np.linspace(0, 1, 10)).transpose(0, 2, 1)
+
+        if np.isnan(xs).any():
+            print('as:', self.endpoint_as)
+            print('bs:', self.endpoint_bs)
+            print('ks:', self.endpoint_ks)
+            print('ts:', self.endpoint_ts)
+
+        for i in range(xs.shape[0]):
+            # for j in range(self.n-1, 0, -1):
+            for j in range(self.n):
+                coefficients = self.get_poly_for_curve(xs[i, j], ys[i, j])
+                self.aa[i, j] = coefficients[0]
+                self.bs[i, j] = coefficients[1]
+                self.ks[i, j] = coefficients[2]
+                self.rs[i, j] = coefficients[3]
 
     def set_model(self, solid_rib=False,
                   medial_rib=False, longitudinal_ribs=False):
         self.depths = np.array([
-            self.octave_depth,
-            self.octave_depth - self.octave_shell,
-            self.nut_depth,
-            self.nut_depth - self.nut_shell,
+            [self.nut_depth - self.nut_shell,
+             self.nut_depth, ],
+            [self.octave_depth - self.octave_shell,
+             self.octave_depth, ],
+            # [self.octave_depth - self.octave_shell,
+            #  self.octave_depth, ],
         ])
-        self.minor_as = self.get_a(
-            self.minor_bs, self.widths, self.depths,
-            np.array([self.rail_depth, 0, self.rail_depth, 0]),
-            np.array([self.r_outer, self.r_inner, self.r_outer, self.r_inner]),
+
+        y_offsets = np.zeros(4).reshape((2, 2))
+        y_offsets += np.array([[0, self.rail_depth, ], [0, self.rail_depth, ]])
+
+        self.endpoint_as = self.get_a(
+            self.endpoint_bs, self.widths, self.depths,
+            y_offsets, self.exponents,
         )
+
+        self.endpoint_ks = self.endpoint_bs - self.depths
+
+        if np.any(self.endpoint_ks < 0):
+            print('ks:', self.endpoint_ks)
+            self.endpoint_ks[np.where(self.endpoint_ks < 0)] = 0
+
+        self.endpoint_ts = np.arcsin(
+            ((self.endpoint_ks + y_offsets) / self.endpoint_bs) **
+            (self.exponents / 2))
+
+        self.get_coefficients()
+
         if solid_rib:
             self.sections = [
                 NeckSection(self.build_areas_with_solid_rib(i), i / self.n)
-                for i in range(self.n + 1)
+                for i in range(self.n)
             ]
         elif medial_rib:
             self.sections = [
                 NeckSection(self.build_areas_with_medial_rib(i), i / self.n)
-                for i in range(self.n + 1)
+                for i in range(self.n)
             ]
         elif longitudinal_ribs and longitudinal_ribs > 0:
             self.sections = [
                 NeckSection(self.build_areas_with_longitudinal_ribs(i, longitudinal_ribs), i / self.n)
-                for i in range(self.n + 1)
+                for i in range(self.n)
             ]
         else:
             self.sections = [
                 NeckSection(self.build_areas_with_open_rib(i), i / self.n)
-                for i in range(self.n + 1)
+                for i in range(self.n)
             ]
 
     def reset(self):
@@ -277,9 +359,8 @@ class Neck(NeckConfig):
 if __name__ == '__main__':
     neck = Neck()
     neck.reset()
-    neck.minor_bs = np.array([3.63100775, 0.9375, 2.2802993, 0.625])
-    neck.r_outer = 2.7
-    neck.r_inner = 3.
+    neck.endpoint_bs = np.array([[0.625, 2.2802993, ], [0.9375, 3.63100775, ]])
+    neck.exponents = np.array([[3, 2.7], [3, 2.7]])
     neck.rail_width = 0.16
     neck.nut_shell = 0.032
     neck.octave_shell = .0625 + 0.032
@@ -296,18 +377,17 @@ if __name__ == '__main__':
 
     neck = Neck()
     neck.reset()
-    neck.minor_bs = np.array([6.75, 0.9375, 4.875, 0.625 ])
-    neck.r_outer = 3
-    neck.r_inner = 3.
+    neck.endpoint_bs = np.array([[0.625, 4.875, ], [0.9375, 6.75, ]])
+    neck.exponents = 3 * np.ones(4).reshape((2, 2))
     neck.rail_width = 0.16
     neck.nut_shell = 0.032
     neck.octave_shell = .0625 + 0.032
     neck.nut_depth = 0.55
     neck.octave_depth = 0.817
     neck.inner_rib = 0.25
-    neck.set_model()
-    self.minor_as = self.get_a(
-        self.minor_bs, self.widths, self.depths,
-        np.array([self.rail_depth, 0, self.rail_depth, 0]),
-        np.array([self.r_outer, self.r_inner, self.r_outer, self.r_inner]),
-    )
+    # neck.set_model()
+    # self.aa = self.get_a(
+    #     self.bs, self.widths, self.depths,
+    #     np.array([self.rail_depth, 0, self.rail_depth, 0]),
+    #     np.array([self.r_outer, self.r_inner, self.r_outer, self.r_inner]),
+    # )
