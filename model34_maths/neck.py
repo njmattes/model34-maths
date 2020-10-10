@@ -251,7 +251,6 @@ class Neck(NeckConfig):
             2,
             # xs[-1], xs[-1], xs[-1], 2,
         ])
-        # FIXME: All lower bounds must be less than all upper bounds
         bounds = np.array([
             # [xs[-1], xs[-1], 0, 2],
             [np.min(self.endpoint_as), np.min(self.endpoint_bs),
@@ -263,8 +262,6 @@ class Neck(NeckConfig):
         return list(fit[0])
 
     def get_coefficients(self):
-        import matplotlib.pyplot as plt
-
         ts = (self.endpoint_ts.reshape((4, -1)) +
               (np.pi / 2 - self.endpoint_ts).reshape((4, -1)) *
               np.linspace(1, 0, self.n)).reshape((2, 2, -1))
@@ -307,7 +304,7 @@ class Neck(NeckConfig):
         ])
 
         y_offsets = np.zeros(4).reshape((2, 2))
-        y_offsets += np.array([[0, self.rail_depth, ], [0, self.rail_depth, ]])
+        y_offsets += np.array([[0, self.rail_depth], [0, self.rail_depth]])
 
         self.endpoint_as = self.get_a(
             self.endpoint_bs, self.widths, self.depths,
