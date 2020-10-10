@@ -7,7 +7,6 @@ from model34_maths.neck import Neck
 
 
 X0 = np.array([
-    # x[2] <= rand * x[0] + x[1] <= x[3]
     [.5, 1.5, 0, 20, ],  # b octave inner
     [2, 1.5, 0, 20, ],  # b octave outer
     [.5, 1.5, 0, 20, ],       # b nut inner
@@ -20,7 +19,6 @@ X0 = np.array([
     [.03125, .03125, 0, .125, ],  # shell
     [.0625, .5, .5, .625, ],      # nut depth
     [.0625, .8125, .8125, 1, ],   # octave depth
-    # [.75 + .0625, .0625, .75 + .0625, .75 + 4 * .0625],  # octave depth
     [.0625, .0625, .0625, .125, ],  # inner rib
 ])
 x0 = np.random.ranf(X0.shape[0]) * X0[:, 0] + X0[:, 1]
