@@ -40,7 +40,7 @@ def get_solver():
                    2, 2, 2, 2,
                    .125, .05, .5, .8125, .125])
     # Upper bounds
-    ub = np.array([4, 4, 4, 4, 4, 4, 4, 4, .25, .125, .625, 1, .25])
+    ub = np.array([4, 6, 4, 6, 4, 4, 4, 4, .25, .125, .625, 1, .25])
     # Lower bounds
     lb = np.array([1, 1.125, .6875, .8125, 2, 2, 2, 2,
                    .125, .01, .5, .8125, .125])
@@ -75,22 +75,16 @@ def get_solver():
         pen = (sum([section.area for section in neck.sections]) - target_area)
         return pen
 
-    def get_curve_delta(neck):
-        ts = neck.endpoint_ts + (np.pi / 2 - neck.endpoint_ts) / 2
-        return (ts,
-                -np.diff(neck.endpoint_as * np.cos(ts) **
-                         (2 / neck.exponents), axis=1),
-                -np.diff(-neck.endpoint_bs * np.sin(ts) **
-                         (2 / neck.exponents) + neck.endpoint_ks, axis=1))
-
-    def get_coords(neck):
-        ts = neck.endpoint_ts + (np.pi / 2 - neck.endpoint_ts) / 2
-        return (ts,
-                neck.endpoint_as * np.cos(ts) ** (2 / neck.exponents),
-                -neck.endpoint_bs * np.sin(ts) ** (2 / neck.exponents) +
-                neck.endpoint_ks)
-
     def intersect(x, neck):
+        """
+
+        :param x:
+        :type x:
+        :param neck:
+        :type neck:
+        :return: 2 if intersection, 0 if none
+        :rtype:
+        """
         t = np.linspace(neck.endpoint_ts[1, 0], np.pi / 2, 100)
         x1 = (neck.endpoint_as[1, 0] * np.cos(t) **
               (2 / neck.exponents[1, 0]))
@@ -103,7 +97,6 @@ def get_solver():
         return max([len(xy) for xy in intersection(x1, y1, x2, y2)])
 
     def thickness(x, neck, i):
-        min_thickness = .05
         xys = np.empty((4, 100))
         for j in range(2):
             t = np.linspace(neck.endpoint_ts[i, j], np.pi / 2, 100)
@@ -127,12 +120,12 @@ def get_solver():
     def nut_max_thickness(x, neck):
         return thickness(x, neck, 1) - .075
 
-    @quadratic_inequality(area, k=2, kwds=dict(neck=n))
-    @quadratic_inequality(body_min_thickness, k=10, kwds=dict(neck=n))
-    @quadratic_inequality(body_max_thickness, k=10, kwds=dict(neck=n))
-    @quadratic_inequality(nut_min_thickness, k=10, kwds=dict(neck=n))
-    @quadratic_inequality(nut_max_thickness, k=10, kwds=dict(neck=n))
-    @quadratic_inequality(intersect, k=100, kwds=dict(neck=n))
+    @quadratic_inequality(area, k=1e+1, kwds=dict(neck=n))  # 10
+    @quadratic_inequality(body_min_thickness, k=1e+3, kwds=dict(neck=n))
+    @quadratic_inequality(body_max_thickness, k=1e+3, kwds=dict(neck=n))
+    @quadratic_inequality(nut_min_thickness, k=1e+3, kwds=dict(neck=n))  # 1e+3
+    @quadratic_inequality(nut_max_thickness, k=1e+3, kwds=dict(neck=n))
+    @quadratic_inequality(intersect, k=1e+2, kwds=dict(neck=n))  #
     def penalty(x):
         return 0.0
 
@@ -175,9 +168,9 @@ if __name__ == '__main__':
                  CrossProbability=cross_probability,
                  ScalingFactor=scaling_factor)
     # solver.Step(disp=True,
-    #              CrossProbability=cross_probability,
-    #              ScalingFactor=scaling_factor)
-    print(solver.bestSolution)
+    #             CrossProbability=cross_probability,
+    #             ScalingFactor=scaling_factor)
+    print(', '.join(solver.bestSolution))
     print(solver.bestEnergy)
     np.save('{}-solutions.npy'.format(
         datetime.now().strftime('%Y%m%d%H%M%S')),
@@ -185,7 +178,3 @@ if __name__ == '__main__':
     np.save('{}-energy.npy'.format(
         datetime.now().strftime('%Y%m%d%H%M%S')),
         solver.energy_history)
-
-    # print(penalty([1.14844955, 1.15669027, 0.71401925, 0.91194577, 2.06971534,
-    #                2., 2.13967954, 2.04335912, 0.13578448, 0.0511539,  0.5,
-    #                0.8125, 0.12710889]))
