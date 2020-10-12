@@ -11,7 +11,7 @@ from model34_maths.config import NeckConfig
 
 
 class Neck(NeckConfig):
-    def __init__(self, a_min=1.2, a_max=6, n=10):
+    def __init__(self, a_min=1.2, a_max=6, n=20):
         """Neck made up of n NeckSections.
 
         """
@@ -239,45 +239,47 @@ class Neck(NeckConfig):
                     self.get_inner_curve(i), NeckCurve(1, 0, 0, 2), ))
         return areas
 
-    def get_poly_for_curve(self, xs, ys):
+    def get_poly_for_curve(self, xs, ys, _p0=None):
 
         def f(x, a, b, k, n):
             return k - b * (1 - np.abs(x / a) ** n) ** (1 / n)
 
-        p0 = np.array([
-            np.max(self.endpoint_as),
-            np.max(self.endpoint_bs),
-            np.max(self.endpoint_bs) - .5,
-            2,
-            # xs[-1], xs[-1], xs[-1], 2,
-        ])
+        if _p0 is None:
+            p0 = np.array([
+                np.max(self.endpoint_as),
+                np.max(self.endpoint_bs),
+                np.max(self.endpoint_bs) - .5,
+                2, ])
+        else:
+            p0 = _p0
+
         bounds = np.array([
-            # [xs[-1], xs[-1], 0, 2],
             [np.min(self.endpoint_as), np.min(self.endpoint_bs),
              0, 2],
             [np.max(self.endpoint_as), np.max(self.endpoint_bs),
              np.max(self.endpoint_bs), 4],
         ])
+
         fit = curve_fit(f, xs, ys, p0=p0, bounds=bounds)
         return list(fit[0])
 
     def get_coefficients(self):
+        n_points = 10
         ts = (self.endpoint_ts.reshape((4, -1)) +
               (np.pi / 2 - self.endpoint_ts).reshape((4, -1)) *
-              np.linspace(1, 0, self.n)).reshape((2, 2, -1))
+              np.linspace(1, 0, n_points)).reshape((2, 2, -1))
+        # Coordinates of t
         xs = (self.endpoint_as.reshape((2, 2, -1)) *
               np.cos(ts) ** (2 / self.exponents.reshape((2, 2, -1))))
         ys = (-self.endpoint_bs.reshape((2, 2, -1)) * np.sin(ts) **
               (2 / self.exponents.reshape((2, 2, -1))) +
               self.endpoint_ks.reshape((2, 2, -1)))
-
-        # Dims: (2, self.n, 10) (Inner then outer, Nut to octave, Left to right)
         xs = (xs[0, :].reshape((2, -1, 1)) +
               np.diff(xs, axis=0).reshape((2, -1, 1)) *
-              np.linspace(0, 1, 10)).transpose(0, 2, 1)
+              np.linspace(0, 1, self.n)).transpose(0, 2, 1)
         ys = (ys[0, :].reshape((2, -1, 1)) +
               np.diff(ys, axis=0).reshape((2, -1, 1)) *
-              np.linspace(0, 1, 10)).transpose(0, 2, 1)
+              np.linspace(0, 1, self.n)).transpose(0, 2, 1)
 
         if np.isnan(xs).any():
             print('as:', self.endpoint_as)
@@ -286,9 +288,10 @@ class Neck(NeckConfig):
             print('ts:', self.endpoint_ts)
 
         for i in range(xs.shape[0]):
-            # for j in range(self.n-1, 0, -1):
+            coefficients = None
             for j in range(self.n):
-                coefficients = self.get_poly_for_curve(xs[i, j], ys[i, j])
+                coefficients = self.get_poly_for_curve(xs[i, j], ys[i, j],
+                                                       _p0=coefficients)
                 self.aa[i, j] = coefficients[0]
                 self.bs[i, j] = coefficients[1]
                 self.ks[i, j] = coefficients[2]
@@ -352,37 +355,52 @@ class Neck(NeckConfig):
 
 
 if __name__ == '__main__':
-    neck = Neck()
+    neck = Neck(n=50)
     neck.reset()
-    neck.endpoint_bs = np.array([[0.625, 2.2802993, ], [0.9375, 3.63100775, ]])
-    neck.exponents = np.array([[3, 2.7], [3, 2.7]])
-    neck.rail_width = 0.16
-    neck.nut_shell = 0.032
-    neck.octave_shell = .0625 + 0.032
-    neck.nut_depth = 0.55
-    neck.octave_depth = 0.817
-    neck.inner_rib = 0.25
+    # neck.endpoint_bs = np.array([[0.625, 2.2802993, ], [0.9375, 3.63100775, ]])
+    neck.endpoint_bs = np.array([[1, 2], [.625, 4], ])
+    # neck.exponents = np.array([[3, 2.7], [3, 2.7]])
+    # neck.rail_width = 0.16
+    # neck.nut_shell = 0.032
+    # neck.octave_shell = .0625 + 0.032
+    # neck.nut_depth = 0.55
+    # neck.octave_depth = 0.817
+    # neck.inner_rib = 0.25
     neck.set_model()
 
-    for _ in neck.sections:
-        print('A:', _.area, 'y:', _.y_bar, 'I:', _.second_moment)
+    # for _ in neck.sections:
+    #     print('A:', _.area, 'y:', _.y_bar, 'I:', _.second_moment)
     print('Asum:', sum([section.area for section in neck.sections]))
-    print(np.array(neck.deflection))
-    print(neck.depths)
+    neck.set_model()
+    # print(np.array(neck.deflection))
+    print(np.sum(
+        1 / np.arange(len(neck.deflection), 0, -1) *
+        np.array(neck.deflection) ** 2 ** .5))
+    # print(neck.depths)
 
-    neck = Neck()
+    neck = Neck(n=100)
     neck.reset()
-    neck.endpoint_bs = np.array([[0.625, 4.875, ], [0.9375, 6.75, ]])
-    neck.exponents = 3 * np.ones(4).reshape((2, 2))
-    neck.rail_width = 0.16
-    neck.nut_shell = 0.032
-    neck.octave_shell = .0625 + 0.032
-    neck.nut_depth = 0.55
-    neck.octave_depth = 0.817
-    neck.inner_rib = 0.25
-    # neck.set_model()
-    # self.aa = self.get_a(
-    #     self.bs, self.widths, self.depths,
-    #     np.array([self.rail_depth, 0, self.rail_depth, 0]),
-    #     np.array([self.r_outer, self.r_inner, self.r_outer, self.r_inner]),
-    # )
+    params =np.array([
+        1.0034783921942723, 5.4351652429592905, 0.6886603308785544,
+        5.915392395054849, 3.971898028000231, 2.305428312581179,
+        3.07137226599626, 2.9422946533847893, 0.17290838778280299,
+        0.05061543031695235, 0.6244023160215957, 0.9999587964346356,
+        0.12510547904796346, ])
+    neck.endpoint_bs = params[0:4].reshape((2, 2))
+    neck.exponents = params[4:8].reshape((2, 2))
+    neck.rail_width = params[8]
+    neck.nut_shell = params[9]
+    neck.octave_shell = params[11] - .75 + params[9]
+    neck.nut_depth = params[10]
+    neck.octave_depth = params[11]
+    neck.inner_rib = params[12]
+    neck.set_model(solid_rib=True)
+    # for _ in neck.sections:
+    #     print('A:', _.area, 'y:', _.y_bar, 'I:', _.second_moment)
+    print('Asum:', sum([section.area for section in neck.sections]))
+    neck.set_model()
+    # print(np.array(neck.deflection))
+    print(np.sum(
+        1 / np.arange(len(neck.deflection), 0, -1) *
+        np.array(neck.deflection) ** 2 ** .5))
+    # print(neck.depths)
