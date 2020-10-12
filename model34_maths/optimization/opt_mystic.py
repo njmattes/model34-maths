@@ -34,30 +34,30 @@ def set_neck(neck, x):
     neck.set_model()
 
 
-def get_solver():
+def get_solver(n=20):
     # Initial guess represents parameters of current neck
-    x0 = np.array([1.125, 1.125, .8125, .8125,
-                   2, 2, 2, 2,
+    x0 = np.array([1.125, 1.125, .8125, .8125, 2, 2, 2, 2,
                    .125, .05, .5, .8125, .125])
     # Upper bounds
-    ub = np.array([4, 6, 4, 6, 4, 4, 4, 4, .25, .125, .625, 1, .25])
+    ub = np.array([4, 6, 4, 6, 4, 4, 4, 4,
+                   .25, .125, .625, 1, .25])
     # Lower bounds
     lb = np.array([1, 1.125, .6875, .8125, 2, 2, 2, 2,
                    .125, .01, .5, .8125, .125])
-    n = Neck()
+    _neck = Neck(n=n)
 
     equations = """
     x0 >= (.75 - x9)
     x1 >= x11
     x2 >= (x10 - x9)
     x3 >= x10  
-    x9 >= .05
-    x9 <= .125
-    x10 >= .5
-    x10 <= .625
-    x11 >= .8125
-    x11 <= 1
     """
+    # x9 >= .05
+    # x9 <= .125
+    # x10 >= .5
+    # x10 <= .625
+    # x11 >= .8125
+    # x11 <= 1
     eqn = simplify(equations, all=True)
     constraints = generate_constraint(generate_solvers(eqn), join=and_)
 
@@ -71,9 +71,9 @@ def get_solver():
         :return:
         :rtype:
         """
-        target_area = 3.7
-        pen = (sum([section.area for section in neck.sections]) - target_area)
-        return pen
+        target_area = {100: 40.27, 50: 20.13, 20: 8.05, 10: 3.7}[n]
+        pen = sum([section.area for section in neck.sections]) / target_area
+        return pen - 1
 
     def intersect(x, neck):
         """
@@ -109,23 +109,24 @@ def get_solver():
         return np.min(cdist(xys[0:2, :].T, xys[2:4, :].T))
 
     def body_min_thickness(x, neck):
-        return .05 - thickness(x, neck, 0)
+        return 1 - (thickness(x, neck, 0) / neck.nut_shell)
 
     def body_max_thickness(x, neck):
-        return thickness(x, neck, 0) - .075
+        return 1 - (ub[9] / thickness(x, neck, 0))
 
     def nut_min_thickness(x, neck):
-        return .05 - thickness(x, neck, 1)
+        return 1 - (thickness(x, neck, 1) / neck.nut_shell)
 
     def nut_max_thickness(x, neck):
-        return thickness(x, neck, 1) - .075
+        return 1 - (ub[9] / thickness(x, neck, 1))
 
-    @quadratic_inequality(area, k=1e+1, kwds=dict(neck=n))  # 10
-    @quadratic_inequality(body_min_thickness, k=1e+3, kwds=dict(neck=n))
-    @quadratic_inequality(body_max_thickness, k=1e+3, kwds=dict(neck=n))
-    @quadratic_inequality(nut_min_thickness, k=1e+3, kwds=dict(neck=n))  # 1e+3
-    @quadratic_inequality(nut_max_thickness, k=1e+3, kwds=dict(neck=n))
-    @quadratic_inequality(intersect, k=1e+2, kwds=dict(neck=n))  #
+    # (2 * k) ** (5 ** n) * f(x) ** 2
+    @quadratic_inequality(area, k=1e+3, kwds=dict(neck=_neck))
+    @quadratic_inequality(body_min_thickness, k=1e+3, kwds=dict(neck=_neck))
+    @quadratic_inequality(body_max_thickness, k=1e+3, kwds=dict(neck=_neck))
+    @quadratic_inequality(nut_min_thickness, k=1e+3, kwds=dict(neck=_neck))
+    @quadratic_inequality(nut_max_thickness, k=1e+3, kwds=dict(neck=_neck))
+    @quadratic_inequality(intersect, k=5, kwds=dict(neck=_neck))  #
     def penalty(x):
         return 0.0
 
@@ -133,26 +134,25 @@ def get_solver():
         # Penalty functions are called after objective, so set neck model here.
         set_neck(neck, x)
         obj = np.sum(
-            np.arange(len(neck.deflection)) *
+            1 / np.arange(len(neck.deflection), 0, -1) *
             np.array(neck.deflection) ** 2 ** .5)
-        # print('obj  ', obj)
-        return 50 * obj
+        return 10 * obj
 
     eval_monitor = Monitor()
     step_monitor = VerboseMonitor(10)
     n_pop = 10
-    f_tol = 1e-8
-    g_tol = 80
-    N = len(x0)
+    f_tol = 1e-6
+    g_tol = 40
+    n_x0 = len(x0)
 
-    _solver = DifferentialEvolutionSolver2(N, n_pop * N)
+    _solver = DifferentialEvolutionSolver2(n_x0, n_pop * n_x0)
     _solver.SetRandomInitialPoints(min=lb, max=ub)
     _solver.SetStrictRanges(min=lb, max=ub)
     _solver.SetPenalty(penalty)
     _solver.SetConstraints(constraints)
     _solver.SetEvaluationMonitor(eval_monitor)
     _solver.SetGenerationMonitor(step_monitor)
-    _solver.SetObjective(objective, ExtraArgs=(n, ))
+    _solver.SetObjective(objective, ExtraArgs=(_neck, ))
     _solver.enable_signal_handler()
     _solver.SetTermination(ChangeOverGeneration(f_tol, g_tol))
 
@@ -170,11 +170,11 @@ if __name__ == '__main__':
     # solver.Step(disp=True,
     #             CrossProbability=cross_probability,
     #             ScalingFactor=scaling_factor)
-    print(', '.join(solver.bestSolution))
-    print(solver.bestEnergy)
     np.save('{}-solutions.npy'.format(
         datetime.now().strftime('%Y%m%d%H%M%S')),
         solver.solution_history)
     np.save('{}-energy.npy'.format(
         datetime.now().strftime('%Y%m%d%H%M%S')),
         solver.energy_history)
+    print(', '.join([str(x) for x in solver.bestSolution]))
+    print(solver.bestEnergy)
