@@ -34,7 +34,7 @@ def set_neck(neck, x):
     neck.set_model()
 
 
-def get_solver(n=20):
+def get_solver(n=100):
     # Initial guess represents parameters of current neck
     x0 = np.array([1.125, 1.125, .8125, .8125, 2, 2, 2, 2,
                    .125, .05, .5, .8125, .125])
@@ -49,8 +49,7 @@ def get_solver(n=20):
     equations = """
     x0 >= (.75 - x9)
     x1 >= x11
-    x2 >= (x10 - x9)
-    x3 >= x10  
+    x2 >= (x10 - x9)    x3 >= x10  
     """
     # x9 >= .05
     # x9 <= .125
@@ -141,8 +140,8 @@ def get_solver(n=20):
     eval_monitor = Monitor()
     step_monitor = VerboseMonitor(10)
     n_pop = 10
-    f_tol = 1e-6
-    g_tol = 40
+    f_tol = 1e-8
+    g_tol = 80
     n_x0 = len(x0)
 
     _solver = DifferentialEvolutionSolver2(n_x0, n_pop * n_x0)
